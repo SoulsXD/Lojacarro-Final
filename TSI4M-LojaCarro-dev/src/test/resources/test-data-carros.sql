@@ -1,11 +1,13 @@
-INSERT INTO carro (id, modelo, ano, preco) VALUES (1, 'Civic1', 2015, 15000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (2, 'Civic2', 2016, 16000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (3, 'Civic3', 2017, 17000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (4, 'Civic4', 2018, 18000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (5, 'Civic5', 2019, 19000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (6, 'Civic6', 2020, 20000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (7, 'Civic7', 2021, 21000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (8, 'Civic8', 2022, 22000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (9, 'Civic9', 2023, 23000.0);
-INSERT INTO carro (id, modelo, ano, preco) VALUES (10, 'Civic10', 2024, 24000.0);
+DELETE FROM carro;
 
+INSERT INTO carro (marca, modelo, ano_fabricacao, ano_modelo, cor, quilometragem, tipo_combustivel, tipo_transmissao, preco, descricao, situacao, fotografia_principal) VALUES
+                                                                                                                                                                            ('Toyota', 'Corolla', 2023, 2023, 'Prata', 15000, 'Flex', 'Automatica', 140000.0, 'Excelente estado', 'DISPONIVEL', 'corolla.jpg'),
+                                                                                                                                                                            ('Honda', 'Civic', 2022, 2023, 'Preta', 25000, 'Flex', 'Automatica', 135000.0, 'Único dono', 'DISPONIVEL', 'civic.jpg'),
+                                                                                                                                                                            ('VW', 'Polo', 2023, 2024, 'Branca', 5000, 'Flex', 'Manual', 85000.0, 'Revisado', 'DISPONIVEL', 'polo.jpg'),
+                                                                                                                                                                            ('Chevrolet', 'Onix', 2021, 2021, 'Vermelha', 45000, 'Flex', 'Manual', 70000.0, 'Econômico', 'DISPONIVEL', 'onix.jpg'),
+                                                                                                                                                                            ('Fiat', 'Argo', 2020, 2021, 'Cinza', 55000, 'Flex', 'Manual', 65000.0, 'Completo', 'DISPONIVEL', 'argo.jpg'),
+                                                                                                                                                                            ('Jeep', 'Compass', 2023, 2024, 'Branca', 12000, 'Diesel', 'Automatica', 210000.0, 'Tração 4x4', 'DISPONIVEL', 'compass.jpg'),
+                                                                                                                                                                            ('Hyundai', 'Creta', 2022, 2022, 'Prata', 30000, 'Flex', 'Automatica', 115000.0, 'Bancos de couro', 'DISPONIVEL', 'creta.jpg'),
+                                                                                                                                                                            ('Renault', 'Kwid', 2023, 2023, 'Branca', 8000, 'Flex', 'Manual', 55000.0, 'Compacto', 'DISPONIVEL', 'kwid.jpg'),
+                                                                                                                                                                            ('Ford', 'Ranger', 2021, 2022, 'Azul', 60000, 'Diesel', 'Automatica', 250000.0, 'Caminhonete de trabalho', 'DISPONIVEL', 'ranger.jpg'),
+                                                                                                                                                                            ('Nissan', 'Kicks', 2023, 2023, 'Preta', 18000, 'Flex', 'Automatica', 125000.0, 'Câmera 360', 'DISPONIVEL', 'kicks.jpg');

@@ -5,10 +5,14 @@ import br.org.edu.ifrn.LojaCarro.model.Carro;
 import br.org.edu.ifrn.LojaCarro.repository.CarroRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class CarroService {
@@ -25,27 +29,59 @@ public class CarroService {
     }
 
     public Carro save(Carro c, Long idUsuario) {
-        validarModelo(c.getModelo());
+        validarCamposObrigatorios(c);
         validarPreco(c.getPreco());
-        Carro salvo = carroRepository.save(c);
 
+        c.setSituacao("DISPONIVEL");
+
+        Carro salvo = carroRepository.save(c);
         registrarLog("CRIAR", salvo, idUsuario);
         return salvo;
     }
 
+    public Carro salvarFotografia(Long id, MultipartFile file, Long idUsuario) {
+        if (file.isEmpty()) {
+            throw new CarroException("O arquivo de imagem não pode estar vazio.");
+        }
+
+        String nomeOriginal = file.getOriginalFilename();
+        if (nomeOriginal == null || (!nomeOriginal.toLowerCase().endsWith(".jpg") && !nomeOriginal.toLowerCase().endsWith(".png"))) {
+            throw new CarroException("A fotografia deve ser no formato JPG ou PNG.");
+        }
+
+        Carro carro = carroRepository.findById(id).orElseThrow(() -> new CarroException("Carro não encontrado."));
+
+        try {
+            String novoNome = UUID.randomUUID().toString() + "_" + nomeOriginal;
+            Path caminhoDestino = Paths.get("imagens").resolve(novoNome).toAbsolutePath();
+            file.transferTo(caminhoDestino.toFile());
+
+            carro.setFotografiaPrincipal(novoNome);
+            Carro atualizado = carroRepository.save(carro);
+
+            registrarLog("ATUALIZAR_FOTO", atualizado, idUsuario);
+            return atualizado;
+        } catch (IOException e) {
+            throw new CarroException("Erro ao salvar a imagem no servidor.");
+        }
+    }
+
     public void deleteById(Long id, Long idUsuario) {
         if(id <= 0){
-            throw new CarroException("O ID do carro não pode ser negativo. ID fornecido: " + id);
+            throw new CarroException("O ID do carro não pode ser negativo ou zero.");
         }
         Optional<Carro> carro = carroRepository.findById(id);
-        carroRepository.deleteById(id);
 
-        carro.ifPresent(c -> registrarLog("DELETAR", c, idUsuario));
+        carro.ifPresent(c -> {
+            c.setSituacao("INATIVO");
+            carroRepository.save(c);
+            registrarLog("EXCLUSAO_LOGICA", c, idUsuario);
+        });
     }
 
     public Optional<Carro> findById(Long id) {
         if(id <= 0){
-            throw new CarroException("O ID do carro não pode ser negativo. ID fornecido: " + id);
+            throw new CarroException("O ID do carro não pode ser negativo ou zero.");
         }
         return carroRepository.findById(id);
     }
@@ -54,67 +90,37 @@ public class CarroService {
         return carroRepository.findAll();
     }
 
-    public Optional<Carro> findByModelo(String modelo) {
-        validarModelo(modelo);
-        return carroRepository.findFirstByModelo(modelo);
-    }
-
-    public Carro saveFromLegacy(String modelo, double preco, Long idUsuario) {
-        Carro carro = new Carro(modelo, LocalDate.now().getYear(), preco);
-        return save(carro, idUsuario);
-    }
-
-    public Carro updateByModelo(String modelo, double preco, Long idUsuario) {
-        Carro carro = localizarCarroPorModelo(modelo);
-        validarPreco(preco);
-        carro.setPreco(preco);
-        Carro atualizado = carroRepository.save(carro);
-
-        registrarLog("ATUALIZAR_PRECO", atualizado, idUsuario);
-        return atualizado;
-    }
-
-    public Carro deleteByModelo(String modelo, Long idUsuario) {
-        Carro carro = localizarCarroPorModelo(modelo);
-        carroRepository.delete(carro);
-
-        registrarLog("DELETAR", carro, idUsuario);
-        return carro;
-    }
-
     public Carro update(Carro c, Long idUsuario) {
         if (c.getId() == null) {
             throw new CarroException("O ID do carro para atualização não pode ser nulo.");
         }
         if (!carroRepository.existsById(c.getId())) {
-            throw new CarroException("Carro com ID " + c.getId() + " não encontrado para atualização.");
+            throw new CarroException("Carro não encontrado para atualização.");
         }
-        validarModelo(c.getModelo());
-        validarPreco(c.getPreco());
-        Carro atualizado = carroRepository.save(c);
 
+        validarCamposObrigatorios(c);
+        validarPreco(c.getPreco());
+
+        Carro atualizado = carroRepository.save(c);
         registrarLog("ATUALIZAR", atualizado, idUsuario);
         return atualizado;
     }
 
-    private void validarModelo(String modelo) {
-        if (modelo == null || modelo.trim().isEmpty()) {
-            throw new CarroException("O modelo do carro não pode estar vazio.");
+    private void validarCamposObrigatorios(Carro c) {
+        if (c.getMarca() == null || c.getMarca().trim().isEmpty()) {
+            throw new CarroException("A marca do carro é obrigatória.");
         }
-        if (modelo.length() >= 10) {
-            throw new CarroException("O modelo do carro deve ter menos de 10 caracteres. Tamanho atual: " + modelo.length());
+        if (c.getModelo() == null || c.getModelo().trim().isEmpty()) {
+            throw new CarroException("O modelo do carro é obrigatório.");
         }
-    }
-
-    private void validarPreco(double preco) {
-        if (preco < 0) {
-            throw new CarroException("O preço do carro não pode ser negativo. Valor fornecido: " + preco);
+        if (c.getFotografiaPrincipal() == null || c.getFotografiaPrincipal().trim().isEmpty()) {
+            throw new CarroException("A fotografia do veículo é obrigatória.");
         }
     }
 
-    private Carro localizarCarroPorModelo(String modelo) {
-        validarModelo(modelo);
-        return carroRepository.findFirstByModelo(modelo)
-                .orElseThrow(() -> new CarroException("Carro com modelo " + modelo + " não encontrado."));
+    private void validarPreco(Double preco) {
+        if (preco == null || preco < 0) {
+            throw new CarroException("O preço do carro não pode ser nulo ou negativo.");
+        }
     }
 }

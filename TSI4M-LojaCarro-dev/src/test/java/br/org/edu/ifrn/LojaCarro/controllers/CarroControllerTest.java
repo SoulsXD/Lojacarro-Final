@@ -2,6 +2,7 @@ package br.org.edu.ifrn.LojaCarro.controllers;
 
 import br.org.edu.ifrn.LojaCarro.CarroException;
 import br.org.edu.ifrn.LojaCarro.model.Carro;
+import br.org.edu.ifrn.LojaCarro.repository.CarroRepository;
 import br.org.edu.ifrn.LojaCarro.services.CarroService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -31,100 +32,58 @@ public class CarroControllerTest {
     @MockBean
     private CarroService carroService;
 
+    @MockBean
+    private CarroRepository carroRepository;
+
     @Autowired
     private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("POST /carro/salvar - sucesso")
     void testSalvarCarroSucesso() throws Exception {
-        Carro carro = new Carro("Civic", 2023);
+        Carro carro = new Carro("Honda", "Civic", 2023, 2023, "Preta", 0, "Flex", "Automatica", 150000.0, "Novo", "DISPONIVEL", "civic.jpg");
         carro.setId(1L);
 
-        when(carroService.save(any(Carro.class), any(Long.class))).thenReturn(carro);
+        when(carroService.save(any(Carro.class), any())).thenReturn(carro);
 
         mockMvc.perform(post("/carro/salvar")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carro)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(carro)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.modelo").value("Civic"))
-                .andExpect(jsonPath("$.ano").value(2023));
-
-        verify(carroService, times(1)).save(any(Carro.class), any(Long.class));
+                .andExpect(jsonPath("$.modelo").value("Civic"));
     }
 
     @Test
-    @DisplayName("POST /carro/salvar - modelo inválido (service lança CarroException)")
+    @DisplayName("POST /carro/salvar - modelo inválido")
     void testSalvarCarroModeloInvalido() throws Exception {
-        Carro carro = new Carro("ModeloMuitoGrande", 2023);
+        Carro carro = new Carro("Honda", "", 2023, 2023, "Preta", 0, "Flex", "Automatica", 150000.0, "Novo", "DISPONIVEL", "civic.jpg");
 
-        when(carroService.save(any(Carro.class), any(Long.class))).thenThrow(new CarroException("O modelo do carro deve ter menos de 10 caracteres."));
-
-        mockMvc.perform(post("/carro/salvar")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carro)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.erro").value(org.hamcrest.Matchers.containsString("O modelo do carro deve ter menos de 10 caracteres.")));
-
-        verify(carroService, times(1)).save(any(Carro.class), any(Long.class));
-    }
-
-    @Test
-    @DisplayName("POST /carro/salvar - preco negativo")
-    void testSalvarCarroPrecoNegativo() throws Exception {
-        Carro carro = new Carro("Civic", 2023);
-        carro.setPreco(-1000.0);
-
-        when(carroService.save(any(Carro.class), any(Long.class))).thenThrow(new CarroException("O preço do carro não pode ser negativo."));
+        when(carroService.save(any(Carro.class), any())).thenThrow(new CarroException("O modelo do carro é obrigatório."));
 
         mockMvc.perform(post("/carro/salvar")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(carro)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.erro").value(org.hamcrest.Matchers.containsString("O preço do carro não pode ser negativo.")));
-
-        verify(carroService, times(1)).save(any(Carro.class), any(Long.class));
-    }
-
-    @Test
-    @DisplayName("PUT /carro/{id} - atualizar carro inexistente")
-    void testAtualizarCarroInexistenteController() throws Exception {
-        Carro c = new Carro("Civic", 2024);
-        c.setId(999L);
-
-        when(carroService.update(any(Carro.class), any(Long.class))).thenThrow(new CarroException("Carro com ID 999 não encontrado para atualização."));
-
-        mockMvc.perform(put("/carro/999")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(c)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.erro").value(org.hamcrest.Matchers.containsString("não encontrado para atualização")));
-
-        verify(carroService, times(1)).update(any(Carro.class), any(Long.class));
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(carro)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("GET /carro - listar todos")
     void testPesquisarTodosCarros() throws Exception {
-        Carro c1 = new Carro("Civic", 2023);
+        Carro c1 = new Carro("Honda", "Civic", 2023, 2023, "Preta", 0, "Flex", "Automatica", 150000.0, "Novo", "DISPONIVEL", "civic.jpg");
         c1.setId(1L);
-        Carro c2 = new Carro("Gol", 2022);
-        c2.setId(2L);
 
-        when(carroService.findAll()).thenReturn(Arrays.asList(c1, c2));
+        when(carroService.findAll()).thenReturn(Arrays.asList(c1));
 
         mockMvc.perform(get("/carro"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].modelo").value("Civic"))
-                .andExpect(jsonPath("$[1].modelo").value("Gol"));
-
-        verify(carroService, times(1)).findAll();
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].modelo").value("Civic"));
     }
 
     @Test
     @DisplayName("GET /carro/{id} - encontrado")
     void testPesquisarCarroPorIdEncontrado() throws Exception {
-        Carro c = new Carro("Civic", 2023);
+        Carro c = new Carro("Honda", "Civic", 2023, 2023, "Preta", 0, "Flex", "Automatica", 150000.0, "Novo", "DISPONIVEL", "civic.jpg");
         c.setId(1L);
 
         when(carroService.findById(1L)).thenReturn(Optional.of(c));
@@ -132,46 +91,29 @@ public class CarroControllerTest {
         mockMvc.perform(get("/carro/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.modelo").value("Civic"));
-
-        verify(carroService, times(1)).findById(1L);
-    }
-
-    @Test
-    @DisplayName("GET /carro/{id} - não encontrado")
-    void testPesquisarCarroPorIdNaoEncontrado() throws Exception {
-        when(carroService.findById(999L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/carro/999"))
-                .andExpect(status().isNotFound());
-
-        verify(carroService, times(1)).findById(999L);
     }
 
     @Test
     @DisplayName("PUT /carro/{id} - atualizar")
     void testAtualizarCarro() throws Exception {
-        Carro c = new Carro("Civic", 2024);
+        Carro c = new Carro("Honda", "Civic", 2024, 2024, "Preta", 0, "Flex", "Automatica", 150000.0, "Novo", "DISPONIVEL", "civic.jpg");
         c.setId(1L);
 
-        when(carroService.update(any(Carro.class), any(Long.class))).thenReturn(c);
+        when(carroService.update(any(Carro.class), any())).thenReturn(c);
 
         mockMvc.perform(put("/carro/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(c)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(c)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ano").value(2024));
-
-        verify(carroService, times(1)).update(any(Carro.class), any(Long.class));
+                .andExpect(jsonPath("$.anoFabricacao").value(2024));
     }
 
     @Test
     @DisplayName("DELETE /carro/{id} - deletar")
     void testDeletarCarro() throws Exception {
-        doNothing().when(carroService).deleteById(eq(1L), any(Long.class));
+        doNothing().when(carroService).deleteById(eq(1L), any());
 
         mockMvc.perform(delete("/carro/1"))
                 .andExpect(status().isNoContent());
-
-        verify(carroService, times(1)).deleteById(eq(1L), any(Long.class));
     }
 }

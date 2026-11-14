@@ -1,12 +1,12 @@
 package br.org.edu.ifrn.LojaCarro.controllers;
 
-import br.org.edu.ifrn.LojaCarro.CarroException;
 import br.org.edu.ifrn.LojaCarro.model.Carro;
+import br.org.edu.ifrn.LojaCarro.repository.CarroRepository;
 import br.org.edu.ifrn.LojaCarro.services.CarroService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,21 +19,34 @@ public class CarroController {
     @Autowired
     private CarroService carroService;
 
-    @PostMapping("salvar")
-    public ResponseEntity<Carro> salvarCarro(@RequestBody Carro c, @RequestHeader("idUsuario") Long idUsuario) {
+    @Autowired
+    private CarroRepository carroRepository;
+
+    @PostMapping("/salvar")
+    public ResponseEntity<Carro> salvarCarro(@RequestBody Carro c, @RequestHeader(value = "idUsuario", required = false) Long idUsuario) {
         Carro savedCarro = carroService.save(c, idUsuario);
         return ResponseEntity.ok(savedCarro);
     }
 
+    @PostMapping(value = "/{id}/fotografia", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Carro> uploadFotografia(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "idUsuario", required = false) Long idUsuario) {
+
+        Carro carro = carroService.salvarFotografia(id, file, idUsuario);
+        return ResponseEntity.ok(carro);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Carro> atualizarCarro(@PathVariable Long id, @RequestBody Carro c, @RequestHeader("idUsuario") Long idUsuario) {
+    public ResponseEntity<Carro> atualizarCarro(@PathVariable Long id, @RequestBody Carro c, @RequestHeader(value = "idUsuario", required = false) Long idUsuario) {
         c.setId(id);
         Carro updatedCarro = carroService.update(c, idUsuario);
         return ResponseEntity.ok(updatedCarro);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarCarro(@PathVariable Long id, @RequestHeader("idUsuario") Long idUsuario) {
+    public ResponseEntity<Void> deletarCarro(@PathVariable Long id, @RequestHeader(value = "idUsuario", required = false) Long idUsuario) {
         carroService.deleteById(id, idUsuario);
         return ResponseEntity.noContent().build();
     }
@@ -44,46 +57,24 @@ public class CarroController {
         return carro.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/listarCarros")
-    public ResponseEntity<List<Carro>> pesquisarTodosCarros() {
+    @GetMapping
+    public ResponseEntity<List<Carro>> listarCarros() {
         List<Carro> carros = carroService.findAll();
         return ResponseEntity.ok(carros);
     }
 
-    @PostMapping(value = "/getCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Carro> pesquisarCarroPorModelo(@RequestBody String modelo) {
-        Optional<Carro> carro = carroService.findByModelo(modelo.trim());
-        return carro.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    @GetMapping("/pesquisar")
+    public ResponseEntity<List<Carro>> pesquisarPorMarcaEModelo(@RequestParam String marca, @RequestParam String modelo) {
+        List<Carro> carros = carroRepository.findByMarcaAndModelo(marca, modelo);
+        return ResponseEntity.ok(carros);
     }
 
-    @PostMapping(value = "/deleteCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> deletarCarroPorModelo(@RequestBody String modelo, @RequestHeader("idUsuario") Long idUsuario) {
-        Carro carro = carroService.deleteByModelo(modelo.trim(), idUsuario);
-        return ResponseEntity.ok("Carro deletado: " + carro.getModelo());
-    }
-
-    @PostMapping(value = "/updateCarro", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Carro> atualizarCarroPorModelo(@RequestBody String payload, @RequestHeader("idUsuario") Long idUsuario) {
-        String[] partes = payload.split(",", 2);
-        if (partes.length < 2) {
-            throw new CarroException("Payload inválido. Use modelo,preco.");
-        }
-        String modelo = partes[0].trim();
-        double preco = parsePreco(partes[1].trim());
-        Carro updatedCarro = carroService.updateByModelo(modelo, preco, idUsuario);
-        return ResponseEntity.ok(updatedCarro);
-    }
-
-    @PostMapping(value = "/teste", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> bomDia(@RequestBody String nome) {
-        return ResponseEntity.ok("Bom dia, " + nome.trim());
-    }
-
-    private double parsePreco(String preco) {
-        try {
-            return Double.parseDouble(preco);
-        } catch (NumberFormatException ex) {
-            throw new CarroException("Preço inválido: " + preco);
-        }
+    @GetMapping("/filtrar")
+    public ResponseEntity<List<Carro>> filtrarPorPrecoEAno(
+            @RequestParam Double precoMin,
+            @RequestParam Double precoMax,
+            @RequestParam Integer anoFabricacao) {
+        List<Carro> carros = carroRepository.findByPrecoBetweenAndAnoFabricacao(precoMin, precoMax, anoFabricacao);
+        return ResponseEntity.ok(carros);
     }
 }
