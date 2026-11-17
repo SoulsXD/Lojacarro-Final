@@ -90,18 +90,18 @@
 </div>
 
 <script>
-    const API_USUARIOS = 'http://localhost:8081/usuarios';
-    const API_CARROS = 'http://localhost:8080/carro';
-    const API_LOGS = 'http://localhost:8081/logs'; 
+    // Configuração das portas das suas APIs
+    const API_USUARIOS = 'http://localhost:8082/usuarios';
+    const API_LOGS = 'http://localhost:8082/logs'; 
+    const API_CARROS = 'http://localhost:8081/carro'; 
     
     let sessaoAtual = null;
 
+    // Função que injeta o Token JWT em todas as requisições protegidas
     function getHeaders() {
         return {
             'Content-Type': 'application/json',
-            'Cargo-Usuario-Logado': sessaoAtual.cargo,
-            'Id-Usuario-Logado': String(sessaoAtual.id),
-            'idUsuario': String(sessaoAtual.id)
+            'Authorization': 'Bearer ' + sessaoAtual.token 
         };
     }
 
@@ -121,12 +121,23 @@
             });
 
             if (resposta.ok) {
-                sessaoAtual = await resposta.json(); 
+                const dados = await resposta.json(); 
+                const token = dados.token;
+                
+                // Decodifica o JWT no frontend para saber quem está logado
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                
+                sessaoAtual = {
+                    token: token,
+                    cargo: payload.cargo,
+                    email: payload.sub,
+                    id: payload.id
+                };
                 
                 document.getElementById('telaLogin').classList.add('escondido');
                 document.getElementById('telaSistema').classList.remove('escondido');
                 
-                document.getElementById('infoUsuarioLogado').innerText = `Logado como: ${sessaoAtual.nome} (${sessaoAtual.cargo})`;
+                document.getElementById('infoUsuarioLogado').innerText = `Logado como: ${sessaoAtual.email} (${sessaoAtual.cargo})`;
                 
                 if (sessaoAtual.cargo === 'CLIENTE') {
                     document.getElementById('secaoUsuarios').classList.add('escondido');
@@ -143,11 +154,10 @@
 
                 carregarCarros();
             } else {
-                const erro = await resposta.text();
-                alert('Erro ao entrar: ' + erro);
+                alert('Erro ao entrar: E-mail ou senha incorretos.');
             }
         } catch (error) {
-            alert('Falha ao conectar com o servidor. Verifique se a API de Usuários (8081) está rodando.');
+            alert('Falha ao conectar. Verifique se a API de Usuários (8082) está rodando.');
         }
     });
 
@@ -209,7 +219,7 @@
                 });
             }
         } catch (error) {
-            console.error('Falha na ligação com a API de Carros (8080).');
+            console.error('Falha na ligação com a API de Carros (8081).');
         }
     }
 
@@ -261,10 +271,19 @@
 
     document.getElementById('formCadastroCarro').addEventListener('submit', async function(event) {
         event.preventDefault();
-
         const novoCarro = {
+            marca: "Toyota", 
             modelo: document.getElementById('modeloCarro').value,
-            preco: parseFloat(document.getElementById('precoCarro').value)
+            anoFabricacao: 2024,
+            anoModelo: 2024,
+            cor: "Prata",
+            quilometragem: 0,
+            tipoCombustivel: "FLEX",
+            tipoTransmissao: "AUTOMATICO",
+            preco: parseFloat(document.getElementById('precoCarro').value),
+            descricao: "Carro de teste inserido pelo frontend HTML",
+            situacao: "DISPONIVEL",
+            fotografia: "carro-padrao.jpg"
         };
 
         try {
@@ -283,7 +302,7 @@
                 alert('Erro ao salvar carro: ' + erro);
             }
         } catch (error) {
-            alert('Falha na ligação com a API de Carros (8080).');
+            alert('Falha na ligação com a API de Carros (8081).');
         }
     });
 
@@ -304,7 +323,7 @@
                 alert('Ação Negada:\n' + mensagemErro);
             }
         } catch (error) {
-            alert('Falha na ligação com a API de Carros (8080).');
+            alert('Falha na ligação com a API de Carros (8081).');
         }
     }
 
