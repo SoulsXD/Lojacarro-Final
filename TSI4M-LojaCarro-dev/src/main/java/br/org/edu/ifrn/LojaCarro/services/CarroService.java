@@ -24,8 +24,12 @@ public class CarroService {
     private LogProducerService logService;
 
     private void registrarLog(String operacao, Carro carro, Long idUsuario) {
-        Long idEntidade = (carro != null) ? carro.getId() : null;
-        logService.enviarLog("CARRO", operacao, idEntidade, idUsuario);
+        try {
+            Long idEntidade = (carro != null) ? carro.getId() : null;
+            logService.enviarLog("CARRO", operacao, idEntidade, idUsuario);
+        } catch (Exception e) {
+            System.out.println("Aviso: Falha ao enviar log para o RabbitMQ.");
+        }
     }
 
     public Carro save(Carro c, Long idUsuario) {
@@ -39,30 +43,22 @@ public class CarroService {
         return salvo;
     }
 
-    public Carro salvarFotografia(Long id, MultipartFile file, Long idUsuario) {
-        if (file.isEmpty()) {
-            throw new CarroException("O arquivo de imagem não pode estar vazio.");
-        }
-
-        String nomeOriginal = file.getOriginalFilename();
-        if (nomeOriginal == null || (!nomeOriginal.toLowerCase().endsWith(".jpg") && !nomeOriginal.toLowerCase().endsWith(".png"))) {
-            throw new CarroException("A fotografia deve ser no formato JPG ou PNG.");
-        }
-
-        Carro carro = carroRepository.findById(id).orElseThrow(() -> new CarroException("Carro não encontrado."));
-
+    public Carro salvarFotografia(Long id, org.springframework.web.multipart.MultipartFile file, Long idUsuario) {
+        Carro carro = carroRepository.findById(id).orElseThrow(() -> new RuntimeException("Carro não encontrado"));
         try {
-            String novoNome = UUID.randomUUID().toString() + "_" + nomeOriginal;
-            Path caminhoDestino = Paths.get("imagens").resolve(novoNome).toAbsolutePath();
-            file.transferTo(caminhoDestino.toFile());
+            java.nio.file.Path pasta = java.nio.file.Paths.get("imagens").toAbsolutePath();
+            if (!java.nio.file.Files.exists(pasta)) {
+                java.nio.file.Files.createDirectories(pasta);
+            }
 
-            carro.setFotografiaPrincipal(novoNome);
-            Carro atualizado = carroRepository.save(carro);
+            String nomeArquivo = java.util.UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+            java.nio.file.Path caminhoDestino = pasta.resolve(nomeArquivo);
+            java.nio.file.Files.copy(file.getInputStream(), caminhoDestino, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            registrarLog("ATUALIZAR_FOTO", atualizado, idUsuario);
-            return atualizado;
-        } catch (IOException e) {
-            throw new CarroException("Erro ao salvar a imagem no servidor.");
+            carro.setFotografiaPrincipal(nomeArquivo);
+            return carroRepository.save(carro);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao salvar imagem", e);
         }
     }
 

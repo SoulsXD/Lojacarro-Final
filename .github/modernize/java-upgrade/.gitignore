@@ -1,0 +1,22 @@
+# 1. Pastas de Upload (Arquivos dinâmicos gerados pelo uso do sistema)
+imagens/
+IMG/
+
+# 2. Maven (Arquivos compilados pelo Java)
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# 3. IDEs (Ficheiros locais do IntelliJ, Eclipse ou VS Code)
+.idea/
+*.iml
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+*.log
+.DS_Store
+Thumbs.db
