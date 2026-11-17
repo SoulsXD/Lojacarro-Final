@@ -3,12 +3,20 @@ package br.org.edu.ifrn.apiusuarios;
 import br.org.edu.ifrn.apiusuarios.model.Cargo;
 import br.org.edu.ifrn.apiusuarios.model.Usuario;
 import br.org.edu.ifrn.apiusuarios.repository.UsuarioRepository;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+@SecurityScheme(
+        name = "Bearer Authentication",
+        type = SecuritySchemeType.HTTP,
+        bearerFormat = "JWT",
+        scheme = "bearer"
+)
 @SpringBootApplication
 public class ApiUsuariosApplication implements CommandLineRunner {
 
